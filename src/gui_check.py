@@ -1,5 +1,6 @@
 
 from src.Base_interface import *
+from src.Physics_interface import *
 
 def startup_basic_test():
     """
@@ -10,6 +11,15 @@ def startup_basic_test():
 
     return True
 
+def physics_screen_test():
+    """
+    Test de physics interface
+    """
+    gui = Base_physics()
+
+    gui.mainloop()
+
+    return True
 
 if __name__ == "__main__":
-    startup_basic_test()
+    physics_screen_test()
