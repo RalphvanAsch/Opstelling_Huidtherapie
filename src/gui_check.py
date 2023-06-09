@@ -22,4 +22,4 @@ def physics_screen_test():
     return True
 
 if __name__ == "__main__":
-    physics_screen_test()
+    startup_basic_test()

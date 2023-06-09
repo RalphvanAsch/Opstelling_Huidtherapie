@@ -1,6 +1,6 @@
 
 from time import sleep
-from typing import Tuple
+from typing import Tuple, List
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -41,9 +41,6 @@ class Base_physics(tk.Tk):
 
         # Vars
         self.measurement = None
-        self.load_data = None
-        self.save_data = None
-        self.results = None
 
         # Figsize
         self.dpi = 100
@@ -51,9 +48,18 @@ class Base_physics(tk.Tk):
         self.graph_topleft(generate_data())
 
         # Build the right side of the GUI
-        self.data_box()
-        self.data_box()
-        self.data_box()
+        upd, vals = self.data_box([["Label 1", "Label 11", "label12", "label13"], ["Label 2", "label 21", "label 22", "label 23"]],
+                        [["0", "1", "2", "3"], ["0", "1", "2", "3"]], updated=True)
+
+
+        self.after(1000, self.update_vars, [generate_data, vals, [str(np.random.randint(10)) for i in range(6)]])
+
+        self.data_box([["Label 1", "Label 11", "label12", "label13"], ["Label 2", "label 21", "label 22", "label 23"]],
+                        [["0", "1", "2", "3"], ["0", "1", "2", "3"]])
+
+        self.data_box([["Label 1", "Label 11", "label12", "label13"], ["Label 2", "label 21", "label 22", "label 23"]],
+                      [["button1", "button2", "button3"], [0, 1, 2]], buttons=True,
+                      commands=[[self.load_data, self.save_data, self.results], [self.load_data, self.save_data, self.results]])
 
     def graph_topleft(self, data):
         """
@@ -77,12 +83,19 @@ class Base_physics(tk.Tk):
         canvas.get_tk_widget().grid(row=self.rowfig, column=0, sticky="NSEW", padx=10, pady=10,
                                     columnspan=3, rowspan=6)
 
-        self.after(1000, self.update_graph, generate_data())
+        # self.after(1000, self.update, generate_data())
         return None
 
-    def data_box(self):
+    def data_box(self, txt_labels: List[List[str]], entries: List[List[str or float]], buttons: bool = False,
+                 edit_state: bool = False, commands: List = None, updated: bool = False) -> List[tk.Entry] or None:
         """
-        Data in the top right corner
+        Data box with 2x3 data cells where each cell has a label and an entry
+        :param txt_labels: List of labels [[row], [row]]
+        :param entries: List of entries [[row], [row]]
+        :param buttons: True, entries become buttons
+        :param edit_state: True if the entries need to be editable
+        :param commands: List of commands for the buttons
+        :return: List of entries or buttons if edit_state or buttons is True
         """
         # Maak een label aan
         text_src = "Dit is een stuk text waar uitleg staat over het onderstaande"
@@ -90,25 +103,77 @@ class Base_physics(tk.Tk):
         label.grid(row=self.row, column=4, sticky="NSEW", columnspan=3, rowspan=1)
         self.row += 1
 
+        if edit_state:
+            entries = []
+        variables = []
+
         # Hier komt de frame met alle data
         frame_data = tk.Frame(master=self)
+
+        entrnr = 0
+        labelnr = 0
+
         # Loop door alle lables en entries heen (row, column)
         for i in range(4):
             for j in range(3):
                 if i % 2 ==0:
                     # Maak een label aan
-                    label = tk.Label(master=frame_data, text="Test")
+                    try:
+                        label = tk.Label(master=frame_data, text=txt_labels[labelnr][j])
+                    except IndexError:
+                        label = tk.Label(master=frame_data, text="")
                     # Plaats de label in het frame
                     label.grid(row=i, column=j, sticky="NSEW")
                 else:
-                    # Maak een entry aan
-                    entry = tk.Entry(master=frame_data)
-                    # Plaats de entry in het frame
-                    entry.grid(row=i, column=j, sticky="NSEW")
+                    if buttons:
+                        try:
+                            button = tk.Button(master=frame_data, text=entries[entrnr][j], command=commands[entrnr][j])
+                        except IndexError:
+                            button = tk.Button(master=frame_data, text="", command=lambda x=0: None)
+                        button.grid(row=i, column=j, sticky="NESW")
+                        entries.append(button)
+                    else:
+                        print(entries)
+                        try:
+                            strvar = tk.StringVar(value=str(entries[entrnr][j]))
+                        except IndexError:
+                            strvar = tk.StringVar(value="")
+
+                        # Maak een entry aan
+                        entry = tk.Entry(master=frame_data, textvariable=strvar)
+
+                        entry.config(state="readonly" if not edit_state else "normal")
+                        # Plaats de entry in het frame
+                        entry.grid(row=i, column=j, sticky="NSEW")
+
+                        if edit_state or buttons or updated:
+                            entries.append(entry)
+                            variables.append(strvar)
+
+            if i % 2 == 0:
+                labelnr += 1
+            else:
+                entrnr += 1
 
         frame_data.grid(row=self.row, column=4, sticky="NSEW", columnspan=1, rowspan=1)
         self.row += 1
-        return None
 
-    def update_graph(self, data):
-        self.graph_topleft(data)
+        return (entries, variables) if (edit_state or buttons or updated) else None
+
+    def update_vars(self, *args):
+        self.graph_topleft(*args[0])
+        for en in range(len(args[1])):
+            args[1][en].set(args[2][en])
+
+
+    def load_data(self):
+        print("ld")
+        return "data loaded"
+
+    def save_data(self):
+        print("sd")
+        return "data saved"
+
+    def results(self):
+        print("rs")
+        return "results"
