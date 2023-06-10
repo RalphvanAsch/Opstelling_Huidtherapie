@@ -51,7 +51,7 @@ class Base_physics(tk.Tk):
         upd, vals = self.data_box([["Label 1", "Label 11", "label12", "label13"], ["Label 2", "label 21", "label 22", "label 23"]],
                         [["0", "1", "2", "3"], ["0", "1", "2", "3"]], updated=True)
         self.vals = vals
-
+        self.upd = upd[2:]
         self.data_box([["Label 1", "Label 11", "label12", "label13"], ["Label 2", "label 21", "label 22", "label 23"]],
                         [["0", "1", "2", "3"], ["0", "1", "2", "3"]])
 
@@ -166,6 +166,10 @@ class Base_physics(tk.Tk):
         self.graph_topleft(args[0]())
         for en in range(len(self.vals)):
             self.vals[en].set(args[1][en])
+            self.upd[en].config(state="normal")
+            self.upd[en].setvar(str(self.vals[en]), str(self.vals[en].get()))
+            self.upd[en].config(state="readonly")
+
             print(self.vals[en].get())
         self.after(1000, self.update_vars, [generate_data, [str(np.random.randint(10)) for i in range(6)]])
 
