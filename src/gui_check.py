@@ -16,7 +16,9 @@ def physics_screen_test():
     Test de physics interface
     """
     gui = Base_physics()
-
+    gui.after(10, gui.update_vars, [generate_data, vals,
+                                      [str(np.random.randint(10)) for i in
+                                       range(6)]])
     gui.mainloop()
 
     return True

@@ -50,9 +50,7 @@ class Base_physics(tk.Tk):
         # Build the right side of the GUI
         upd, vals = self.data_box([["Label 1", "Label 11", "label12", "label13"], ["Label 2", "label 21", "label 22", "label 23"]],
                         [["0", "1", "2", "3"], ["0", "1", "2", "3"]], updated=True)
-
-
-        self.after(1000, self.update_vars, [generate_data, vals, [str(np.random.randint(10)) for i in range(6)]])
+        self.vals = vals
 
         self.data_box([["Label 1", "Label 11", "label12", "label13"], ["Label 2", "label 21", "label 22", "label 23"]],
                         [["0", "1", "2", "3"], ["0", "1", "2", "3"]])
@@ -60,7 +58,7 @@ class Base_physics(tk.Tk):
         self.data_box([["Label 1", "Label 11", "label12", "label13"], ["Label 2", "label 21", "label 22", "label 23"]],
                       [["button1", "button2", "button3"], [0, 1, 2]], buttons=True,
                       commands=[[self.load_data, self.save_data, self.results], [self.load_data, self.save_data, self.results]])
-
+        self.update_vars(generate_data, [str(np.random.randint(10)) for i in range(6)])
     def graph_topleft(self, data):
         """
         Graph in de top left corner
@@ -133,15 +131,16 @@ class Base_physics(tk.Tk):
                         button.grid(row=i, column=j, sticky="NESW")
                         entries.append(button)
                     else:
-                        print(entries)
                         try:
                             strvar = tk.StringVar(value=str(entries[entrnr][j]))
+                            strvar.trace("w", self.update_plc)
                         except IndexError:
                             strvar = tk.StringVar(value="")
+                            strvar.trace("w", self.update_plc)
 
                         # Maak een entry aan
                         entry = tk.Entry(master=frame_data, textvariable=strvar)
-
+                        entry.setvar(str(strvar), str(entries[entrnr][j]))
                         entry.config(state="readonly" if not edit_state else "normal")
                         # Plaats de entry in het frame
                         entry.grid(row=i, column=j, sticky="NSEW")
@@ -161,9 +160,18 @@ class Base_physics(tk.Tk):
         return (entries, variables) if (edit_state or buttons or updated) else None
 
     def update_vars(self, *args):
-        self.graph_topleft(*args[0])
-        for en in range(len(args[1])):
-            args[1][en].set(args[2][en])
+        if len(args) == 1:
+            args = args[0]
+
+        self.graph_topleft(args[0]())
+        for en in range(len(self.vals)):
+            self.vals[en].set(args[1][en])
+            print(self.vals[en].get())
+        self.after(1000, self.update_vars, [generate_data, [str(np.random.randint(10)) for i in range(6)]])
+
+    def update_plc(self, *strvar):
+        # strvar.set(str(np.random.randint(10)))
+        pass
 
 
     def load_data(self):
