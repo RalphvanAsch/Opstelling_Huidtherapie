@@ -48,17 +48,30 @@ class Base_physics(tk.Tk):
         self.graph_topleft(generate_data())
 
         # Build the right side of the GUI
-        upd, vals = self.data_box([["Label 1", "Label 11", "label12", "label13"], ["Label 2", "label 21", "label 22", "label 23"]],
-                        [["0", "1", "2", "3"], ["0", "1", "2", "3"]], updated=True)
+
+        # Updated real time data
+        upd, vals = self.data_box([["Voltage", "Gemmidelde waarde", "Resultaat"], ["Label 2", "label 21", "label 22", "label 23"]],
+                        [["0", "1", "2", "3"], ["0", "1", "2", "3"]],
+                        "Real time ingelezen data",
+                                  updated=True)
         self.vals = vals
         self.upd = upd[2:]
-        self.data_box([["Label 1", "Label 11", "label12", "label13"], ["Label 2", "label 21", "label 22", "label 23"]],
-                        [["0", "1", "2", "3"], ["0", "1", "2", "3"]])
 
-        self.data_box([["Label 1", "Label 11", "label12", "label13"], ["Label 2", "label 21", "label 22", "label 23"]],
-                      [["button1", "button2", "button3"], [0, 1, 2]], buttons=True,
-                      commands=[[self.load_data, self.save_data, self.results], [self.load_data, self.save_data, self.results]])
-        self.update_vars(generate_data, [str(np.random.randint(10)) for i in range(6)])
+        # Not changing data
+        self.data_box([["Label 1", "Label 11", "label12", "label13"],
+                       ["Label 2", "label 21", "label 22", "label 23"]],
+                        [["0", "1", "2", "3"], ["0", "1", "2", "3"]],
+                        "Meest recent ingelezen data")
+
+        # Buttons
+        self.data_box([["Data inladen", "Meting verichten", "Meting stoppen"],
+                       ["Data opslaan", "Meet instellingen aanpassen", "Grafiek opslaan"]],
+                      [["Laad", "Start", "Stop"], ["Opslaan", "Instellingen", "Opslaan"]],
+                      "Hieronder staan enkele knoppen voor data verwerking.",
+                      buttons=True,
+                      commands=[[self.load_data, self.start_meas, self.pause_meas],
+                                [self.load_data, self.save_data, self.results]])
+        self.job = self.update_vars(generate_data, [str(np.random.randint(10)) for i in range(6)])
     def graph_topleft(self, data):
         """
         Graph in de top left corner
@@ -84,7 +97,7 @@ class Base_physics(tk.Tk):
         # self.after(1000, self.update, generate_data())
         return None
 
-    def data_box(self, txt_labels: List[List[str]], entries: List[List[str or float]], buttons: bool = False,
+    def data_box(self, txt_labels: List[List[str]], entries: List[List[str or float]], explain_text: str, buttons: bool = False,
                  edit_state: bool = False, commands: List = None, updated: bool = False) -> List[tk.Entry] or None:
         """
         Data box with 2x3 data cells where each cell has a label and an entry
@@ -96,7 +109,7 @@ class Base_physics(tk.Tk):
         :return: List of entries or buttons if edit_state or buttons is True
         """
         # Maak een label aan
-        text_src = "Dit is een stuk text waar uitleg staat over het onderstaande"
+        text_src = explain_text
         label = tk.Label(master=self, text=text_src)
         label.grid(row=self.row, column=4, sticky="NSEW", columnspan=3, rowspan=1)
         self.row += 1
@@ -133,10 +146,10 @@ class Base_physics(tk.Tk):
                     else:
                         try:
                             strvar = tk.StringVar(value=str(entries[entrnr][j]))
-                            strvar.trace("w", self.update_plc)
+                            # strvar.trace("w", self.update_plc)
                         except IndexError:
                             strvar = tk.StringVar(value="")
-                            strvar.trace("w", self.update_plc)
+                            # strvar.trace("w", self.update_plc)
 
                         # Maak een entry aan
                         entry = tk.Entry(master=frame_data, textvariable=strvar)
@@ -159,7 +172,15 @@ class Base_physics(tk.Tk):
 
         return (entries, variables) if (edit_state or buttons or updated) else None
 
-    def update_vars(self, *args):
+    def update_vars(self, *args) -> str:
+        """
+        Update the variables in the GUI
+
+        :param args[0]: Function that generates the data
+        :param args[1]: Data points for all 6 boxes
+
+        :return: None
+        """
         if len(args) == 1:
             args = args[0]
 
@@ -170,12 +191,19 @@ class Base_physics(tk.Tk):
             self.upd[en].setvar(str(self.vals[en]), str(self.vals[en].get()))
             self.upd[en].config(state="readonly")
 
-            print(self.vals[en].get())
-        self.after(1000, self.update_vars, [generate_data, [str(np.random.randint(10)) for i in range(6)]])
+        job = self.after(1000, self.update_vars, [generate_data, [str(np.random.randint(10)) for i in range(6)]])
 
-    def update_plc(self, *strvar):
-        # strvar.set(str(np.random.randint(10)))
-        pass
+        return job
+
+    def get_data(self):
+        # This function should be called to request data from the hardware.py file
+        # And format it to be used in the graph/real time data
+
+        # This is a placeholder
+
+        # Wellicht functie als dit in hardware.py?
+        # return should contain (tijd, data, avg, hardware informatie [voltage, laatst gelezen waarde, int value, etc.])
+        return None
 
 
     def load_data(self):
@@ -189,3 +217,19 @@ class Base_physics(tk.Tk):
     def results(self):
         print("rs")
         return "results"
+
+    def pause_meas(self):
+        # Stop de meting, als er een meting loopt
+        if self.job is not None:
+            # Zoek de exacte job en stop deze met after_cancel
+            self.after_cancel(self.call("after", "info")[0])
+            # De meting is gestopt dus job is None
+            self.job = None
+        return None
+
+    def start_meas(self):
+        # Check of er al een meting loopt
+        if self.job is None:
+            self.job = self.update_vars(generate_data, [str(np.random.randint(10)) for i in range(6)])
+
+        return None
